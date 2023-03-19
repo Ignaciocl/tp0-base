@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
-
+import signal
 from configparser import ConfigParser
 from common.server import Server
 import logging
 import os
 
-
+statuses = {'killWasCalled': False}
 def initialize_config():
     """ Parse env variables or config file to find program config params
 
     Function that search and parse program configuration parameters in the
-    program environment variables first and the in a config file. 
-    If at least one of the config parameters is not found a KeyError exception 
-    is thrown. If a parameter could not be parsed, a ValueError is thrown. 
-    If parsing succeeded, the function returns a ConfigParser object 
+    program environment variables first and the in a config file.
+    If at least one of the config parameters is not found a KeyError exception
+    is thrown. If a parameter could not be parsed, a ValueError is thrown.
+    If parsing succeeded, the function returns a ConfigParser object
     with config parameters
     """
 
@@ -49,7 +49,7 @@ def main():
 
     # Initialize server and start server loop
     server = Server(port, listen_backlog)
-    server.run()
+    server.run(statuses)
 
 def initialize_log(logging_level):
     """
@@ -65,5 +65,11 @@ def initialize_log(logging_level):
     )
 
 
+def killWasCalled(*args):
+    logging.info('sigterm was called. Shutting down')
+    statuses['killWasCalled'] = True
+
+
 if __name__ == "__main__":
+    signal.signal(signal.SIGTERM, killWasCalled)
     main()

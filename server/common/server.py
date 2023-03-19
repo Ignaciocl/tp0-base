@@ -9,7 +9,7 @@ class Server:
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
 
-    def run(self):
+    def run(self, statuses: dict):
         """
         Dummy Server loop
 
@@ -18,11 +18,10 @@ class Server:
         finishes, servers starts to accept new connections again
         """
 
-        # TODO: Modify this program to handle signal to graceful shutdown
-        # the server
-        while True:
+        while not statuses['killWasCalled']:
             client_sock = self.__accept_new_connection()
             self.__handle_client_connection(client_sock)
+        logging.info('server stopped listening for connections, will shut down in short time.')
 
     def __handle_client_connection(self, client_sock):
         """
