@@ -19,7 +19,8 @@ def addClients(amount, services: dict):
             'environment':
                 [f'CLI_ID={clientId}', 'CLI_LOG_LEVEL=DEBUG'],
             'networks': ['testing_net'],
-            'depends_on': ['server']
+            'depends_on': ['server'],
+            'volumes': ['./client/config.yaml:/config.yaml']
         }
 
 
