@@ -1,5 +1,23 @@
+import json
 import socket
 import logging
+
+from common.utils import Bet, store_bets
+
+
+def transformIntoBingoDTO(info: str):
+    data = json.loads(info)
+    return {
+        "name": data['name'],
+        "document": data['document'],
+        "born_date": data['born_date'],
+        "number": data['number'],
+        "surname": data['surname'],
+    }
+
+
+def transformIntoBet(bingoDto: dict, agency: str):
+    return Bet(agency, bingoDto['name'], bingoDto['surname'], bingoDto['document'], bingoDto['born_date'], bingoDto['number'])
 
 
 class Server:
@@ -34,7 +52,10 @@ class Server:
             # TODO: Modify the receive to avoid short-reads
             msg = client_sock.recv(1024).rstrip().decode('utf-8')
             addr = client_sock.getpeername()
-            logging.info(f'action: receive_message | result: success | ip: {addr[0]} | msg: {msg}')
+            bet = transformIntoBet(transformIntoBingoDTO(msg), addr[1])
+            store_bets([bet])
+            logging.info(f'action: apuesta_almacenada | result: success | dni: ${bet.document} | numero: ${bet.number}')
+
             # TODO: Modify the send to avoid short-writes
             client_sock.send("{}\n".format(msg).encode('utf-8'))
         except OSError as e:

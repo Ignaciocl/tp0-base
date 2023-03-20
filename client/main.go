@@ -108,5 +108,12 @@ func main() {
 	}
 
 	client := common.NewClient(clientConfig)
-	client.StartClientLoop()
+	clientInfo := common.BingoDTO {
+		Name: v.GetString("personInfo.name"),
+		Document: v.GetInt("personInfo.document"),
+		Number: v.GetInt("personInfo.number"),
+		BornDate: v.GetString("personInfo.bornDate"),
+		Surname: v.GetString("personInfo.surname"),
+	}
+	client.SendClientInfo(clientInfo)
 }

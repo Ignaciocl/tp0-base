@@ -2,6 +2,7 @@ package common
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"net"
 	"os"
@@ -104,4 +105,22 @@ loop:
 	}
 
 	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
+}
+
+func (c *Client) SendClientInfo(info BingoDTO) {
+	c.createClientSocket()
+	defer c.conn.Close()
+	// Check if this is allowed, otherwise use a handmade library
+	writer := json.NewEncoder(c.conn)
+	reader := json.NewDecoder(c.conn)
+	if encodeError:= writer.Encode(info); encodeError != nil {
+		log.Errorf("error while sending message: %v", encodeError)
+		return
+	}
+	var response BingoDTO
+	if decodeError:= reader.Decode(&response); decodeError != nil {
+		log.Errorf("error while sending message: %v", decodeError)
+		return
+	}
+	log.Infof("action: apuesta_enviada | result: success | dni: %d | numero: %d", response.Document, response.Number)
 }

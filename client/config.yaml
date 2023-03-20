@@ -6,3 +6,9 @@ loop:
   period: "5s"
 log:
   level: "info"
+personInfo:
+  name: "pedro"
+  document: 418
+  number: 303456
+  surname: "pepito"
+  bornDate: "1997-11-11"
