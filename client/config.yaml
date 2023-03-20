@@ -6,6 +6,7 @@ loop:
   period: "5s"
 log:
   level: "info"
+closingMessage: "general kenobi"
 personInfo:
   name: "pedro"
   document: 418

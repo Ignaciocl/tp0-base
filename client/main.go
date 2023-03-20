@@ -105,6 +105,7 @@ func main() {
 		ID:            v.GetString("id"),
 		LoopLapse:     v.GetDuration("loop.lapse"),
 		LoopPeriod:    v.GetDuration("loop.period"),
+		ClosingMessage: v.GetString("closingMessage"),
 	}
 
 	client := common.NewClient(clientConfig)
@@ -115,5 +116,8 @@ func main() {
 		BornDate: v.GetString("personInfo.bornDate"),
 		Surname: v.GetString("personInfo.surname"),
 	}
-	client.SendClientInfo(clientInfo)
+	bingoService := common.BingoService {
+		ClientInfo: clientInfo,
+	}
+	bingoService.ProcessInformation(client)
 }

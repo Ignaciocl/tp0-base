@@ -1,31 +1,16 @@
-import json
 import socket
 import logging
 
-from common.utils import Bet, store_bets
-
-
-def transformIntoBingoDTO(info: str):
-    data = json.loads(info)
-    return {
-        "name": data['name'],
-        "document": data['document'],
-        "born_date": data['born_date'],
-        "number": data['number'],
-        "surname": data['surname'],
-    }
-
-
-def transformIntoBet(bingoDto: dict, agency: str):
-    return Bet(agency, bingoDto['name'], bingoDto['surname'], bingoDto['document'], bingoDto['born_date'], bingoDto['number'])
+from common.bingo import Bingo
 
 
 class Server:
-    def __init__(self, port, listen_backlog):
+    def __init__(self, port, listen_backlog, endingMessage):
         # Initialize server socket
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
+        self._endingMessage = endingMessage
 
     def run(self, statuses: dict):
         """
@@ -50,18 +35,34 @@ class Server:
         """
         try:
             # TODO: Modify the receive to avoid short-reads
-            msg = client_sock.recv(1024).rstrip().decode('utf-8')
+            msg = self.getMessage(client_sock)
+            if msg == 'test':
+                client_sock.send("{}\n".format(msg).encode('utf-8'))
+                return
             addr = client_sock.getpeername()
-            bet = transformIntoBet(transformIntoBingoDTO(msg), addr[1])
-            store_bets([bet])
-            logging.info(f'action: apuesta_almacenada | result: success | dni: ${bet.document} | numero: ${bet.number}')
-
-            # TODO: Modify the send to avoid short-writes
-            client_sock.send("{}\n".format(msg).encode('utf-8'))
+            bingoService = Bingo(addr[1])
+            bingoService.processMessage(msg)
+            self.sendMessage(client_sock, msg)
         except OSError as e:
             logging.error("action: receive_message | result: fail | error: {e}")
         finally:
             client_sock.close()
+
+    def sendMessage(self, clientSock, msg):
+        eightKb = 1024*8
+        finalMessage = msg + self._endingMessage
+        for i in range(0, len(finalMessage), eightKb):
+            bytesSent = clientSock.send(finalMessage[i: i+eightKb].encode('utf-8'))
+            i -= eightKb - bytesSent
+
+    def getMessage(self, clientSock):
+        eightKb = 1024*8
+        msg = ''
+        while True:
+            msg += clientSock.recv(eightKb).rstrip().decode('utf-8')
+            if msg == 'test' or msg.endswith(self._endingMessage):
+                break
+        return msg.rstrip(self._endingMessage)
 
     def __accept_new_connection(self):
         """

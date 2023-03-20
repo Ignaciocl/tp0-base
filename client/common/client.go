@@ -2,7 +2,7 @@ package common
 
 import (
 	"bufio"
-	"encoding/json"
+	"bytes"
 	"fmt"
 	"net"
 	"os"
@@ -19,6 +19,7 @@ type ClientConfig struct {
 	ServerAddress string
 	LoopLapse     time.Duration
 	LoopPeriod    time.Duration
+	ClosingMessage string
 }
 
 // Client Entity that encapsulates how
@@ -107,20 +108,56 @@ loop:
 	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
 }
 
-func (c *Client) SendClientInfo(info BingoDTO) {
-	c.createClientSocket()
-	defer c.conn.Close()
-	// Check if this is allowed, otherwise use a handmade library
-	writer := json.NewEncoder(c.conn)
-	reader := json.NewDecoder(c.conn)
-	if encodeError:= writer.Encode(info); encodeError != nil {
-		log.Errorf("error while sending message: %v", encodeError)
-		return
+func (c *Client) OpenConnection() error {
+	if err := c.createClientSocket(); err != nil {
+		log.Errorf("error while openning connection, %v", err)
+		return err
 	}
-	var response BingoDTO
-	if decodeError:= reader.Decode(&response); decodeError != nil {
-		log.Errorf("error while sending message: %v", decodeError)
-		return
+	return nil
+}
+
+func (c *Client) CloseConnection() {
+	c.conn.Close()
+}
+
+func (c *Client) SendData(bytes []byte) error {
+	bytesToSend := append(bytes, c.config.ClosingMessage...)
+	eightKB := 8 * 1024
+	size := len(bytesToSend)
+	for i := 0; i <= len(bytesToSend); i += eightKB {
+		var sending []byte
+		if size < i + eightKB {
+			sending = bytesToSend[i : size]
+		} else {
+			sending = bytesToSend[i: i + eightKB]
+		}
+		amountSent, err := c.conn.Write(sending)
+		if err != nil {
+			log.Errorf("weird error happened, not stopping but something should be checked: %v", err)
+		}
+		if dif := len(sending) - amountSent; dif > 0 { // Avoiding short write
+			i -= dif
+		}
 	}
-	log.Infof("action: apuesta_enviada | result: success | dni: %d | numero: %d", response.Document, response.Number)
+	return nil
+}
+
+func (c *Client) ReceiveData() ([]byte, error) {
+	eightKB := 8 * 1024
+	received := make([]byte, eightKB)
+	checkedValue := []byte(c.config.ClosingMessage)
+	total := make([]byte, 0)
+	for {
+		if i, err := c.conn.Read(received); err != nil {
+			log.Errorf("error while receiving message, ending receiver: %v", err)
+			return nil, err
+		} else {
+			total = append(total, received[0:i]...)
+		}
+		if bytes.HasSuffix(total, checkedValue) {
+			break
+		}
+	}
+	finalData := total[0:len(total) - len(c.config.ClosingMessage)]
+	return finalData, nil
 }
