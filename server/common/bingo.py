@@ -4,8 +4,7 @@ import logging
 from common.utils import Bet, store_bets
 
 
-def _transformIntoBingoDTO(info: str):
-    data = json.loads(info)
+def _transformIntoBingoDTO(data: dict):
     return {
         "name": data['name'],
         "document": data['document'],
@@ -22,12 +21,17 @@ class Bingo:
 
     def processMessage(self, data: str):
         try:
-            bet = self._transformIntoBet(_transformIntoBingoDTO(data))
-            store_bets([bet])
-            logging.info(f'action: apuesta_almacenada | result: success | dni: ${bet.document} | numero: ${bet.number}')
+            infoOfBets = json.loads(data)
+            bets = []
+            for b in infoOfBets:
+                bets.append(self._transformIntoBet(_transformIntoBingoDTO(b)))
+            store_bets(bets)
+            amount = len(bets)
+            logging.info(f'action: apuestas_almacenadas | result: success | cantidad: {amount}')
+            return amount
         except Exception as e:
             logging.error(f"error happened while processing bet, {e}")
-            return
+            return 0
 
     def _transformIntoBet(self, bingoDto: dict):
         return Bet(self.agency, bingoDto['name'], bingoDto['surname'], bingoDto['document'], bingoDto['born_date'],

@@ -27,6 +27,7 @@ def initialize_config():
         config_params["listen_backlog"] = int(os.getenv('SERVER_LISTEN_BACKLOG', config["DEFAULT"]["SERVER_LISTEN_BACKLOG"]))
         config_params["logging_level"] = os.getenv('LOGGING_LEVEL', config["DEFAULT"]["LOGGING_LEVEL"])
         config_params["endingMessage"] = os.getenv('ENDING_MESSAGE', config["DEFAULT"]["ENDING_MESSAGE"])
+        config_params["batchMessageEnd"] = os.getenv('ENDING_BATCH', config["DEFAULT"]["ENDING_BATCH"])
     except KeyError as e:
         raise KeyError("Key was not found. Error: {} .Aborting server".format(e))
     except ValueError as e:
@@ -41,6 +42,7 @@ def main():
     port = config_params["port"]
     listen_backlog = config_params["listen_backlog"]
     endingMessage = config_params["endingMessage"]
+    batchMessageEnd = config_params["batchMessageEnd"]
 
     initialize_log(logging_level)
 
@@ -50,7 +52,7 @@ def main():
                   f"listen_backlog: {listen_backlog} | logging_level: {logging_level}")
 
     # Initialize server and start server loop
-    server = Server(port, listen_backlog, endingMessage)
+    server = Server(port, listen_backlog, endingMessage, batchMessageEnd)
     server.run(statuses)
 
 def initialize_log(logging_level):

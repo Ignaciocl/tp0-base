@@ -6,7 +6,9 @@ loop:
   period: "5s"
 log:
   level: "info"
-closingMessage: "general kenobi"
+closingMessage: "hello there"
+closingBatch: "general kenobi"
+amountOfBatch: 5
 personInfo:
   name: "pedro"
   document: 418

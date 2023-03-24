@@ -20,6 +20,7 @@ type ClientConfig struct {
 	LoopLapse     time.Duration
 	LoopPeriod    time.Duration
 	ClosingMessage string
+	ClosingBatch string
 }
 
 // Client Entity that encapsulates how
@@ -120,8 +121,12 @@ func (c *Client) CloseConnection() {
 	c.conn.Close()
 }
 
-func (c *Client) SendData(bytes []byte) error {
-	bytesToSend := append(bytes, c.config.ClosingMessage...)
+func (c *Client) SendData(bytes []byte, lastBatch bool) error {
+	closingMessage := c.config.ClosingMessage
+	if lastBatch {
+		closingMessage = c.config.ClosingBatch
+	}
+	bytesToSend := append(bytes, closingMessage...)
 	eightKB := 8 * 1024
 	size := len(bytesToSend)
 	for i := 0; i <= len(bytesToSend); i += eightKB {
@@ -133,7 +138,8 @@ func (c *Client) SendData(bytes []byte) error {
 		}
 		amountSent, err := c.conn.Write(sending)
 		if err != nil {
-			log.Errorf("weird error happened, not stopping but something should be checked: %v", err)
+			log.Errorf("weird error happened, stopping but something should be checked: %v", err)
+			return err
 		}
 		if dif := len(sending) - amountSent; dif > 0 { // Avoiding short write
 			i -= dif

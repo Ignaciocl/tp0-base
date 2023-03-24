@@ -7,3 +7,8 @@ type BingoDTO struct {
 	Number int `json:"number"`
 	Surname string `json:"surname"`
 }
+
+type BingoResponse struct {
+	AmountProcessed int `json:"amount_processed"`
+	Status string `json:"status"`
+}
