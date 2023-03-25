@@ -55,7 +55,7 @@ func (b BingoService) ProcessInformation(c *Client) error {
 			log.Errorf("error while receiving winners: %v", err)
 			return err
 		} else if res.Status == "foundOgre" {
-			log.Infof("winners are: %v", res.Winners)
+			log.Infof("action: consulta_ganadores | result: success | cant_ganadores: %d", len(res.Winners))
 			break
 		}
 		c.CloseConnection()
