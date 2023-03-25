@@ -1,6 +1,8 @@
+import ctypes
 import json
 import socket
 import logging
+import multiprocessing
 
 from common.bingo import Bingo, LotteryManager
 
@@ -23,14 +25,21 @@ class Server:
         communication with a client. After client with communucation
         finishes, servers starts to accept new connections again
         """
-
+        writeLock = multiprocessing.Lock()
+        processes = []
+        lmReading = multiprocessing.Value(ctypes.c_int, 0)
+        agenciesAnswered = multiprocessing.Value(ctypes.c_int, 0)
         while not statuses['killWasCalled']:
             client_sock = self.__accept_new_connection()
-            self.__handle_client_connection(client_sock)
+            p = multiprocessing.Process(target=self.__handle_client_connection, args=(client_sock, writeLock, lmReading, agenciesAnswered))
+            p.start()
+            processes.append(p)
         logging.info('server stopped listening for connections, will shut down in short time.')
+        for p in processes:
+            p.join()
         self._statusWasKilled = True
 
-    def __handle_client_connection(self, client_sock):
+    def __handle_client_connection(self, client_sock, lock, lmReading, agenciesAnswered):
         """
         Read message from a specific client socket and closes the socket
 
@@ -38,6 +47,7 @@ class Server:
         client socket will also be closed
         """
         processed = 0
+        lm = LotteryManager(lmReading, agenciesAnswered)
         try:
             while not self._statusWasKilled:
                 msg, keepProcessing = self.getMessage(client_sock)
@@ -45,12 +55,11 @@ class Server:
                     client_sock.send("{}\n".format(msg).encode('utf-8'))
                     return
                 addr = client_sock.getpeername()
-                bingoService = Bingo(addr[1])
+                bingoService = Bingo(addr[1], lock, lm)
                 processedThisIter: dict = bingoService.processMessage(msg)
                 self.sendMessage(client_sock, json.dumps({"amount_processed": processedThisIter.get('amountProcessed', 0), "status": processedThisIter.get('status', "allOgre"), "winners": processedThisIter.get('winners')}))
                 processed += processedThisIter.get('amountProcessed', 0)
                 if not keepProcessing:
-                    lm = LotteryManager()
                     lm.agencyFinished(addr[1])
                     break
         except OSError as e:

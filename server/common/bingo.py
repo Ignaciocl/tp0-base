@@ -14,12 +14,41 @@ def _transformIntoBingoDTO(data: dict):
     }
 
 
-class Bingo:
+class LotteryManager:
+    def __init__(self, lmReading, agenciesFinished, agenciesNeeded: int = 5):
+        self._winners = []
+        self._agenciesFinished = agenciesFinished
+        self._minimumAmountOfAgencies = agenciesNeeded
+        self._amountReading = lmReading
 
-    def __init__(self, agency: str, agenciesFinished=0):
+    def agencyFinished(self, agency):
+        with self._agenciesFinished.get_lock():
+            self._agenciesFinished.value += 1
+
+    def getWinners(self, lock):
+        if self._agenciesFinished.value < self._minimumAmountOfAgencies:
+            raise IndexError('can`t start the lottery, still missing agencies to report its winners')
+        with self._amountReading.get_lock():  # This could suffer from starvation to anyone trying to read, but is min
+            if self._amountReading == 0:
+                lock.acquire()
+            self._amountReading.value += 1
+        for x in load_bets():
+            if has_won(x):
+                self._winners.append(str(x.document))
+        with self._amountReading.get_lock():
+            self._amountReading.value -= 1
+            if self._amountReading == 0:
+                lock.release()
+        return self._winners
+
+
+class Bingo:
+    def __init__(self, agency: str, lock, lm: LotteryManager, agenciesFinished=0):
         self.agency = agency
         self._agencyFinished = agenciesFinished
         self.__actionsMap = {'sendingBatch': self._processBets, 'findMeMyOgre': self._findWinners}
+        self._lock = lock
+        self._lm = lm
 
     def processMessage(self, data: str) -> dict:
         action = 'unknown'
@@ -38,15 +67,17 @@ class Bingo:
         bets = []
         for b in infoOfBets:
             bets.append(self._transformIntoBet(_transformIntoBingoDTO(b)))
+        self._lock.acquire()
         store_bets(bets)
+        self._lock.release()
         amount = len(bets)
         logging.info(f'action: apuestas_almacenadas | result: success | cantidad: {amount}')
         return {'amountProcessed': amount}
 
     def _findWinners(self, *args):
-        lotteryManager = LotteryManager()
+        lotteryManager = self._lm
         try:
-            info = {'winners': lotteryManager.getWinners(), 'status': 'foundOgre'}
+            info = {'winners': lotteryManager.getWinners(self._lock), 'status': 'foundOgre'}
             return info
         except IndexError:
             return {'status': 'notAllOgre'}
@@ -54,32 +85,3 @@ class Bingo:
     def _transformIntoBet(self, bingoDto: dict):
         return Bet(self.agency, bingoDto['name'], bingoDto['surname'], bingoDto['document'], bingoDto['born_date'],
                    bingoDto['number'])
-
-
-class LotteryManager:
-    def __int__(self, agenciesNeeded: int = 5):
-        self._winners = []
-        self._agenciesFinished = set()
-        self._minimumAmountOfAgencies = agenciesNeeded
-
-    def __new__(cls, agenciesNeeded: int = 5):
-        if not hasattr(cls, 'instance'):
-            cls.instance = super(LotteryManager, cls).__new__(cls)
-            cls._winners = []
-            cls._agenciesFinished = set()
-            cls._minimumAmountOfAgencies = agenciesNeeded
-        return cls.instance
-
-    def agencyFinished(self, agency):
-        self._agenciesFinished.add(agency)
-
-    def getWinners(self):
-        if len(self._agenciesFinished) < self._minimumAmountOfAgencies:
-            raise IndexError('can`t start the lottery, still missing agencies to report its winners')
-        if not self._winners:
-            # ToDo later here we will need a sync feature
-            for x in load_bets():
-                if has_won(x):
-                    self._winners.append(str(x.document))
-            logging.info('action: sorteo | result: success')
-        return self._winners
