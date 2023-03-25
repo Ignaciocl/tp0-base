@@ -2,7 +2,7 @@ import json
 import socket
 import logging
 
-from common.bingo import Bingo
+from common.bingo import Bingo, LotteryManager
 
 
 class Server:
@@ -46,10 +46,12 @@ class Server:
                     return
                 addr = client_sock.getpeername()
                 bingoService = Bingo(addr[1])
-                processedThisIter = bingoService.processMessage(msg)
-                self.sendMessage(client_sock, json.dumps({"amount_processed": processedThisIter, "status": "allOgre"}))
-                processed += processedThisIter
+                processedThisIter: dict = bingoService.processMessage(msg)
+                self.sendMessage(client_sock, json.dumps({"amount_processed": processedThisIter.get('amountProcessed', 0), "status": processedThisIter.get('status', "allOgre"), "winners": processedThisIter.get('winners')}))
+                processed += processedThisIter.get('amountProcessed', 0)
                 if not keepProcessing:
+                    lm = LotteryManager()
+                    lm.agencyFinished(addr[1])
                     break
         except OSError as e:
             logging.error(f"action: receive_message | result: fail | error: {e} | amount processed = {processed}")

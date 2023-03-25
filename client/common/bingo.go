@@ -19,7 +19,6 @@ func (b BingoService) ProcessInformation(c *Client) error {
 	if err := c.OpenConnection(); err != nil {
 		return err
 	}
-	defer c.CloseConnection()
 	users, _ := b.readCsv()
 	amountOfUsers := len(users)
 	for i := 0; i <= amountOfUsers; i += b.AmountToSend {
@@ -29,27 +28,62 @@ func (b BingoService) ProcessInformation(c *Client) error {
 			amount = amountOfUsers
 			lastBatch = true
 		}
-		info, _ := json.Marshal(users[i:amount])
-		if err := c.SendData(info, lastBatch); err != nil {
+		msg := BingoCommunication{
+			Action: "sendingBatch",
+			Data:   users[i:amount],
+		}
+		res, err := SendAndReceive(c, msg, lastBatch)
+		if err != nil {
 			return err
 		}
-		data, err := c.ReceiveData()
-		if data == nil || err != nil {
-			log.Errorf("could not read data for bingo")
-			return err
-		}
-		var res BingoResponse
-		if err := json.Unmarshal(data, &res); err != nil {
-			log.Errorf("could not understand response from otherside, %v, message received was: %v", err, string(data))
-			return err
-		}
-		if amount - i < res.AmountProcessed {
-			log.Errorf("processed less than it should, amount expected: %d, amount processed: %d", amount - i, res.AmountProcessed)
-			return fmt.Errorf("processed less than it should, amount expected: %d, amount processed: %d", amount - i, res.AmountProcessed)
+		if amount-i < res.AmountProcessed {
+			log.Errorf("processed less than it should, amount expected: %d, amount processed: %d", amount-i, res.AmountProcessed)
+			return fmt.Errorf("processed less than it should, amount expected: %d, amount processed: %d", amount-i, res.AmountProcessed)
 		}
 	}
+	c.CloseConnection()
 	log.Infof("action: apuestas_enviadas | result: success | cantidad: %d | status: %s", amountOfUsers, "ok")
+	for {
+		if err := c.OpenConnection(); err != nil {
+			return err
+		}
+		msg := BingoCommunication{
+			Action: "findMeMyOgre",
+			Data:   nil,
+		}
+		if res, err := SendAndReceive(c, msg, true); err != nil {
+			log.Errorf("error while receiving winners: %v", err)
+			return err
+		} else if res.Status == "foundOgre" {
+			log.Infof("winners are: %v", res.Winners)
+			break
+		}
+		c.CloseConnection()
+
+	}
 	return nil
+}
+
+func SendAndReceive(c *Client, msg BingoCommunication, lastBatch bool) (BingoResponse, error) {
+	info, _ := json.Marshal(msg)
+	if err := c.SendData(info, lastBatch); err != nil {
+		return BingoResponse{}, err
+	}
+	return getResponse(c)
+}
+
+func getResponse(c *Client) (BingoResponse, error) {
+	data, err := c.ReceiveData()
+	if data == nil || err != nil {
+		log.Errorf("could not read data for bingo")
+		return BingoResponse{}, err
+	}
+	var res BingoResponse
+	if err := json.Unmarshal(data, &res); err != nil {
+		log.Errorf("could not understand response from otherside, %v, message received was: %v", err, string(data))
+		return BingoResponse{}, err
+	}
+	return res, nil
 }
 
 func (b BingoService) readCsv() ([]BingoDTO, error) {
