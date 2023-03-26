@@ -27,7 +27,7 @@ def addClients(amount, services: dict):
 if __name__ == "__main__":
     amountToAdd = sys.argv[1]
     if not (amountToAdd and amountToAdd.isdigit()):
-        print('la cagaste pibe')
+        print('wrong amount of clients, should be number')
         exit(1)
     amountToAdd = int(amountToAdd)
     info = {}
