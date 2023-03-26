@@ -1,4 +1,14 @@
 # TP0: Docker + Comunicaciones + Concurrencia
+El tp esta separado por los ejercicios pedidos a resolver, para ver cada uno se tiene que acceder a cada uno de los branchs en especifico. Los branches se relacionan con los ejercicios de la siguiente manera:
+ - Ejercicio 1: [ex1](https://github.com/Ignaciocl/tp0-base/tree/ex1)
+ - Ejercicio 2: [ex2](https://github.com/Ignaciocl/tp0-base/tree/ex2)
+ - Ejercicio 3: [ex3](https://github.com/Ignaciocl/tp0-base/tree/ex3)
+ - Ejercicio 4: [ex4](https://github.com/Ignaciocl/tp0-base/tree/ex4)
+ - Ejercicio 5: [ej5](https://github.com/Ignaciocl/tp0-base/tree/ej5)
+ - Ejercicio 6: [ej6](https://github.com/Ignaciocl/tp0-base/tree/ej6)
+ - Ejercicio 7: [ej7](https://github.com/Ignaciocl/tp0-base/tree/ej7)
+ - Ejercicio 8: [ej8](https://github.com/Ignaciocl/tp0-base/tree/ej8)
+
 
 ## Instrucciones de uso
 
