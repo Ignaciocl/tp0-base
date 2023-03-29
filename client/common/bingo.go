@@ -29,7 +29,16 @@ func (b BingoService) ProcessInformation(c *Client) error {
 			amount = amountOfUsers
 			lastBatch = true
 		}
-		info, _ := json.Marshal(users[i:amount])
+		info := make([]byte, 0)
+		info = append(info, '[')
+		for j := i; j < amount; j +=1 {
+			if bUser, err := users[j].ToByteArray(); err != nil {
+				return err
+			}else {
+				info = append(info, bUser...)
+			}
+		}
+		info = append(info, ']')
 		if err := c.SendData(info, lastBatch); err != nil {
 			return err
 		}

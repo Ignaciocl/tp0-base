@@ -1,17 +1,35 @@
-import json
 import logging
 
 from common.utils import Bet, store_bets
 
 
-def _transformIntoBingoDTO(data: dict):
-    return {
-        "name": data['name'],
-        "document": data['document'],
-        "born_date": data['born_date'],
-        "number": data['number'],
-        "surname": data['surname'],
+def _transformIntoBingoDTO(info: str):
+    bingoDTO = {
+        'name': '',
+        'document': '',
+        'born_date': '',
+        'number': '',
+        'surname': '',
     }
+    for kv in info.lstrip('{').rstrip('}').split(','):
+        k, v = kv.split(':')
+        if k in bingoDTO:
+            bingoDTO[k] = v
+    return bingoDTO
+
+
+def _stringToArrayStringBingoDto(msg: str):
+    res = []
+    inter = ''
+    for x in msg.rstrip(']').lstrip('['):
+        if x == '"':
+            continue
+        inter += x
+        if x == '}':
+            res.append(inter)
+            inter = ''
+    print(f"res is: {res}")
+    return res
 
 
 class Bingo:
@@ -21,7 +39,7 @@ class Bingo:
 
     def processMessage(self, data: str):
         try:
-            infoOfBets = json.loads(data)
+            infoOfBets = _stringToArrayStringBingoDto(data)  # ToDo check here
             bets = []
             for b in infoOfBets:
                 bets.append(self._transformIntoBet(_transformIntoBingoDTO(b)))
