@@ -1,17 +1,52 @@
-import json
 import logging
 
 from common.utils import Bet, store_bets, load_bets, has_won
 
 
-def _transformIntoBingoDTO(data: dict):
-    return {
-        "name": data['name'],
-        "document": data['document'],
-        "born_date": data['born_date'],
-        "number": data['number'],
-        "surname": data['surname'],
+def _transformIntoBingoDTO(info: str):
+    bingoDTO = {
+        'name': '',
+        'document': '',
+        'born_date': '',
+        'number': '',
+        'surname': '',
     }
+    for kv in info.lstrip(',').lstrip('{').rstrip('}').split(','):
+        k, v = kv.split(':')
+        if k in bingoDTO:
+            bingoDTO[k] = v
+    return bingoDTO
+
+
+def _stringToArrayStringBingoDto(msg: str):
+    res = []
+    inter = ''
+    for x in msg.rstrip(']').lstrip('['):
+        if x == '"':
+            continue
+        inter += x
+        if x == '}':
+            res.append(inter)
+            inter = ''
+    return res
+
+
+def _stringToActionObject(msg: str) -> dict:
+    d = {'action': '', 'data': []}
+    data = [x for x in msg.split('"') if x != '']
+    for i in range(len(data)):
+        if data[i] == 'action':
+            d['action'] = data[i + 2]  # position of the action after split and filter
+            i += 2
+        if data[i] == 'data':
+            finalPositionOfArray = i+2
+            for j in range(i, len(data)):
+                if ']' in data[j]:
+                    finalPositionOfArray = j + 1
+                    break
+            d['data'] = _stringToArrayStringBingoDto("".join(data[i+1:finalPositionOfArray]).rstrip("}").lstrip(":"))
+            i += finalPositionOfArray
+    return d
 
 
 class LotteryManager:
@@ -53,7 +88,7 @@ class Bingo:
     def processMessage(self, data: str) -> dict:
         action = 'unknown'
         try:
-            infoOfBets = json.loads(data)
+            infoOfBets = _stringToActionObject(data)
             action = infoOfBets["action"]
             methodToUse = self.__actionsMap.get(action, None)
             if not methodToUse:
