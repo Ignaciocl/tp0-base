@@ -28,13 +28,13 @@ def initialize_config():
         config_params["logging_level"] = os.getenv('LOGGING_LEVEL', config["DEFAULT"]["LOGGING_LEVEL"])
         config_params["endingMessage"] = os.getenv('ENDING_MESSAGE', config["DEFAULT"]["ENDING_MESSAGE"])
         config_params["batchMessageEnd"] = os.getenv('ENDING_BATCH', config["DEFAULT"]["ENDING_BATCH"])
+        config_params["maxConnections"] = os.getenv('MAX_CONNECTIONS_ALIVE', config["DEFAULT"]["MAX_CONNECTIONS_ALIVE"])
     except KeyError as e:
         raise KeyError("Key was not found. Error: {} .Aborting server".format(e))
     except ValueError as e:
         raise ValueError("Key could not be parsed. Error: {}. Aborting server".format(e))
 
     return config_params
-
 
 def main():
     config_params = initialize_config()
@@ -43,6 +43,7 @@ def main():
     listen_backlog = config_params["listen_backlog"]
     endingMessage = config_params["endingMessage"]
     batchMessageEnd = config_params["batchMessageEnd"]
+    maxConnections = int(config_params["maxConnections"])
 
     initialize_log(logging_level)
 
@@ -53,7 +54,7 @@ def main():
 
     # Initialize server and start server loop
     server = Server(port, listen_backlog, endingMessage, batchMessageEnd)
-    server.run(statuses)
+    server.run(statuses, maxConnections)
 
 def initialize_log(logging_level):
     """

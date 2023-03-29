@@ -31,7 +31,7 @@ class Server:
         self._endingBatch = endingBatch
         self._statusWasKilled = False
 
-    def run(self, statuses: dict):
+    def run(self, statuses: dict, maxConnections = 3):
         """
         Dummy Server loop
 
@@ -43,9 +43,18 @@ class Server:
         processes = []
         lmReading = multiprocessing.Value(ctypes.c_int, 0)
         agenciesAnswered = multiprocessing.Value(ctypes.c_int, 0)
+        socketsAlive = multiprocessing.Value(ctypes.c_int, 0)
         while not statuses['killWasCalled']:
             client_sock = self.__accept_new_connection()
-            p = multiprocessing.Process(target=self.__handle_client_connection, args=(client_sock, writeLock, lmReading, agenciesAnswered))
+            with socketsAlive.get_lock():
+                if socketsAlive.value < maxConnections:
+                    maxConnections += 1
+                    client_sock.send(b"ack")
+                else:
+                    client_sock.send(b"nack")
+                    client_sock.close()
+                    continue
+            p = multiprocessing.Process(target=self.__handle_client_connection, args=(client_sock, writeLock, lmReading, agenciesAnswered, socketsAlive))
             p.start()
             processes.append(p)
         logging.info('server stopped listening for connections, will shut down in short time.')
@@ -53,7 +62,7 @@ class Server:
             p.join()
         self._statusWasKilled = True
 
-    def __handle_client_connection(self, client_sock, lock, lmReading, agenciesAnswered):
+    def __handle_client_connection(self, client_sock, lock, lmReading, agenciesAnswered, clientOpen):
         """
         Read message from a specific client socket and closes the socket
 
@@ -74,13 +83,16 @@ class Server:
                 self.sendMessage(client_sock, dictToStr({"amount_processed": processedThisIter.get('amountProcessed', 0), "status": processedThisIter.get('status', "allOgre"), "winners": processedThisIter.get('winners')}))
                 processed += processedThisIter.get('amountProcessed', 0)
                 if not keepProcessing:
-                    lm.agencyFinished(addr[1])
+                    if processed > 0:
+                        lm.agencyFinished(addr[1])
                     break
         except OSError as e:
             logging.error(f"action: receive_message | result: fail | error: {e} | amount processed = {processed}")
         finally:
             logging.info(f"action: finish_processing | result: ok | amountProcessed = {processed}")
             client_sock.close()
+            with clientOpen.get_lock():
+                clientOpen.value -= 1
 
     def sendMessage(self, clientSock, msg: str):
         eightKb = 1024*8

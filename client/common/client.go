@@ -110,9 +110,29 @@ loop:
 }
 
 func (c *Client) OpenConnection() error {
-	if err := c.createClientSocket(); err != nil {
-		log.Errorf("error while openning connection, %v", err)
-		return err
+	for {
+		if err := c.createClientSocket(); err != nil {
+			log.Errorf("error while openning connection, %v", err)
+			return err
+		}
+		msgReceived := make([]byte, 4)
+		if receivedBytes, err := c.conn.Read(msgReceived); err == nil {
+			msg := string(msgReceived[0:receivedBytes])
+			if receivedBytes == 3 && string(msg) == "ack" {
+				log.Infof("connection successful")
+				break
+			}
+			if msg == "nack" {
+				log.Info("nack received, waiting a second to ask again")
+			} else {
+				log.Infof("message: '%s' received, did not understand, waiting a second to try again", msg)
+			}
+		} else {
+			log.Errorf("error while waiting for receive new connection, closing previous and waiting for new: %v", err)
+		}
+		_ = c.conn.Close()
+		c.conn = nil
+		time.Sleep(1)
 	}
 	return nil
 }
