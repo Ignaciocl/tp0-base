@@ -2,7 +2,6 @@ package common
 
 import (
 	"encoding/csv"
-	"encoding/json"
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"os"
@@ -48,7 +47,7 @@ func (b BingoService) ProcessInformation(c *Client) error {
 			return err
 		}
 		var res BingoResponse
-		if err := json.Unmarshal(data, &res); err != nil {
+		if err := res.ToObject(data); err != nil {
 			log.Errorf("could not understand response from otherside, %v, message received was: %v", err, string(data))
 			return err
 		}

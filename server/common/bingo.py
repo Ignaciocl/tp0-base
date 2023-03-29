@@ -28,7 +28,6 @@ def _stringToArrayStringBingoDto(msg: str):
         if x == '}':
             res.append(inter)
             inter = ''
-    print(f"res is: {res}")
     return res
 
 

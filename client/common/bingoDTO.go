@@ -17,9 +17,33 @@ type BingoResponse struct {
 	AmountProcessed int    `json:"amount_processed"`
 	Status          string `json:"status"`
 }
+
+func (r *BingoResponse) adder(message string, wholeMessage string, position int) (int, bool, error) {
+	posToAdd := 0
+	interString := ""
+	var err error
+	if message == "\"status\":" {
+		r.Status, posToAdd = findNextSep(wholeMessage, position + 1)
+		return posToAdd, true, nil
+	}
+	if message == "\"document\":" {
+		interString, posToAdd = findNextSep(wholeMessage, position + 1)
+		r.AmountProcessed, err = strconv.Atoi(interString)
+		if err != nil {
+			return 0, false, errors.Errorf("document isn't number, can't translate class, err: %v", err)
+		}
+		return posToAdd, true, err
+	}
+	return posToAdd, false, err
+}
+
 type SendableMessage interface {
 	ToByteArray() ([]byte, error)
 	ToObject([]byte) error
+}
+
+type adderable interface {
+	adder(message string, wholeMessage string, position int) (int, bool, error)
 }
 
 func (b *BingoDTO) ToByteArray() ([]byte, error) {
@@ -79,6 +103,10 @@ func (b *BingoDTO) adder(message string, wholeMessage string, position int) (int
 }
 
 func (b *BingoDTO) ToObject(bytes []byte) error {
+	return processBytes(bytes, b)
+}
+
+func processBytes(bytes []byte, b adderable) error {
 	receivedInfo := string(bytes)
 	message := ""
 	for i := 0; i < len(receivedInfo); i += 1 {
@@ -99,4 +127,8 @@ func (b *BingoDTO) ToObject(bytes []byte) error {
 		}
 	}
 	return nil
+}
+
+func (r *BingoResponse) ToObject(bytes []byte) error  {
+	return processBytes(bytes, r)
 }

@@ -1,8 +1,18 @@
-import json
 import socket
 import logging
 
 from common.bingo import Bingo
+
+
+def dictToStr(d: dict) -> str:
+    """
+    :param d: a dict with no more than one level of depth
+    :return: a string that represents a json value of said dict
+    """
+    s = '{'
+    for x in d.items():
+        s += f'"{x[0]}":"{x[1]}"'
+    return s + '}'
 
 
 class Server:
@@ -47,7 +57,7 @@ class Server:
                 addr = client_sock.getpeername()
                 bingoService = Bingo(addr[1])
                 processedThisIter = bingoService.processMessage(msg)
-                self.sendMessage(client_sock, json.dumps({"amount_processed": processedThisIter, "status": "allOgre"}))
+                self.sendMessage(client_sock, dictToStr({"amount_processed": processedThisIter, "status": "allOgre"}))
                 processed += processedThisIter
                 if not keepProcessing:
                     break
@@ -57,7 +67,7 @@ class Server:
             logging.info(f"action: finish_processing | result: ok | amountProcessed = {processed}")
             client_sock.close()
 
-    def sendMessage(self, clientSock, msg):
+    def sendMessage(self, clientSock, msg: str):
         eightKb = 1024*8
         finalMessage = msg + self._endingMessage
         for i in range(0, len(finalMessage), eightKb):
