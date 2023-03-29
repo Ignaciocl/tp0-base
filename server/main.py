@@ -6,6 +6,8 @@ import logging
 import os
 
 statuses = {'killWasCalled': False}
+
+
 def initialize_config():
     """ Parse env variables or config file to find program config params
 
@@ -24,7 +26,8 @@ def initialize_config():
     config_params = {}
     try:
         config_params["port"] = int(os.getenv('SERVER_PORT', config["DEFAULT"]["SERVER_PORT"]))
-        config_params["listen_backlog"] = int(os.getenv('SERVER_LISTEN_BACKLOG', config["DEFAULT"]["SERVER_LISTEN_BACKLOG"]))
+        config_params["listen_backlog"] = int(
+            os.getenv('SERVER_LISTEN_BACKLOG', config["DEFAULT"]["SERVER_LISTEN_BACKLOG"]))
         config_params["logging_level"] = os.getenv('LOGGING_LEVEL', config["DEFAULT"]["LOGGING_LEVEL"])
         config_params["endingMessage"] = os.getenv('ENDING_MESSAGE', config["DEFAULT"]["ENDING_MESSAGE"])
         config_params["batchMessageEnd"] = os.getenv('ENDING_BATCH', config["DEFAULT"]["ENDING_BATCH"])
@@ -35,6 +38,7 @@ def initialize_config():
         raise ValueError("Key could not be parsed. Error: {}. Aborting server".format(e))
 
     return config_params
+
 
 def main():
     config_params = initialize_config()
@@ -54,7 +58,15 @@ def main():
 
     # Initialize server and start server loop
     server = Server(port, listen_backlog, endingMessage, batchMessageEnd)
+
+    def killWasCalled(*args):
+        logging.info('sigterm was called. Shutting down')
+        statuses['killWasCalled'] = True
+        server.stopConnection()
+
+    signal.signal(signal.SIGTERM, killWasCalled)
     server.run(statuses, maxConnections)
+
 
 def initialize_log(logging_level):
     """
@@ -70,11 +82,5 @@ def initialize_log(logging_level):
     )
 
 
-def killWasCalled(*args):
-    logging.info('sigterm was called. Shutting down')
-    statuses['killWasCalled'] = True
-
-
 if __name__ == "__main__":
-    signal.signal(signal.SIGTERM, killWasCalled)
     main()

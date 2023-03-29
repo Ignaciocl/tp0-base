@@ -46,6 +46,8 @@ class Server:
         socketsAlive = multiprocessing.Value(ctypes.c_int, 0)
         while not statuses['killWasCalled']:
             client_sock = self.__accept_new_connection()
+            if statuses['killWasCalled']:
+                break
             with socketsAlive.get_lock():
                 if socketsAlive.value < maxConnections:
                     maxConnections += 1
@@ -129,3 +131,10 @@ class Server:
         c, addr = self._server_socket.accept()
         logging.info(f'action: accept_connections | result: success | ip: {addr[0]}')
         return c
+
+    def stopConnection(self):
+        """
+        stop listening for connections
+        """
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.connect(self._server_socket.getsockname())
