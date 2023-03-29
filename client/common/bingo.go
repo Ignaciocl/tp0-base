@@ -2,7 +2,6 @@ package common
 
 import (
 	"encoding/csv"
-	"encoding/json"
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"os"
@@ -65,7 +64,7 @@ func (b BingoService) ProcessInformation(c *Client) error {
 }
 
 func SendAndReceive(c *Client, msg BingoCommunication, lastBatch bool) (BingoResponse, error) {
-	info, _ := json.Marshal(msg)
+	info, _ := msg.ToByteArray()
 	if err := c.SendData(info, lastBatch); err != nil {
 		return BingoResponse{}, err
 	}
@@ -79,9 +78,12 @@ func getResponse(c *Client) (BingoResponse, error) {
 		return BingoResponse{}, err
 	}
 	var res BingoResponse
-	if err := json.Unmarshal(data, &res); err != nil {
+	if err := res.ToObject(data); err != nil {
 		log.Errorf("could not understand response from otherside, %v, message received was: %v", err, string(data))
 		return BingoResponse{}, err
+	}
+	if res.Status == "foundOgre" {
+		log.Infof("received winners, status: %v", res)
 	}
 	return res, nil
 }
