@@ -34,7 +34,6 @@ class Server:
         client socket will also be closed
         """
         try:
-            # TODO: Modify the receive to avoid short-reads
             msg = self.getMessage(client_sock)
             if msg == 'test':
                 client_sock.send("{}\n".format(msg).encode('utf-8'))
@@ -44,7 +43,7 @@ class Server:
             bingoService.processMessage(msg)
             self.sendMessage(client_sock, msg)
         except OSError as e:
-            logging.error("action: receive_message | result: fail | error: {e}")
+            logging.error(f"action: receive_message | result: fail | error: {e}")
         finally:
             client_sock.close()
 

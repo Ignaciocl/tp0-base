@@ -1,18 +1,21 @@
-import json
 import logging
 
 from common.utils import Bet, store_bets
 
 
 def _transformIntoBingoDTO(info: str):
-    data = json.loads(info)
-    return {
-        "name": data['name'],
-        "document": data['document'],
-        "born_date": data['born_date'],
-        "number": data['number'],
-        "surname": data['surname'],
+    bingoDTO = {
+        'name': '',
+        'document': '',
+        'born_date': '',
+        'number': '',
+        'surname': '',
     }
+    for kv in info.lstrip('{').rstrip('}').split(','):
+        k, v = kv.split(':')
+        if k in bingoDTO:
+            bingoDTO[k] = v
+    return bingoDTO
 
 
 class Bingo:

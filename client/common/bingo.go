@@ -1,7 +1,6 @@
 package common
 
 import (
-	"encoding/json"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -14,7 +13,7 @@ func (b BingoService) ProcessInformation(c *Client) error {
 		return err
 	}
 	defer c.CloseConnection()
-	info, _ := json.Marshal(b.ClientInfo)
+	info, _ := b.ClientInfo.ToByteArray()
 	if err := c.SendData(info); err != nil {
 		return err
 	}
@@ -24,7 +23,7 @@ func (b BingoService) ProcessInformation(c *Client) error {
 		return err
 	}
 	var res BingoDTO
-	if err := json.Unmarshal(data, &res); err != nil {
+	if err := res.ToObject(data); err != nil {
 		log.Errorf("could not understand response from otherside, %v", err)
 		return err
 	}
