@@ -12,7 +12,8 @@ def _transformIntoBingoDTO(info: str):
         'surname': '',
     }
     for kv in info.lstrip('{').rstrip('}').split(','):
-        k, v = kv.split(':')
+        k, v = kv.strip().split(':')
+        k, v = k.strip('"'), v.strip('"')
         if k in bingoDTO:
             bingoDTO[k] = v
     return bingoDTO
