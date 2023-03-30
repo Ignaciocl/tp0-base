@@ -27,6 +27,8 @@ def initialize_config():
         config_params["listen_backlog"] = int(os.getenv('SERVER_LISTEN_BACKLOG', config["DEFAULT"]["SERVER_LISTEN_BACKLOG"]))
         config_params["logging_level"] = os.getenv('LOGGING_LEVEL', config["DEFAULT"]["LOGGING_LEVEL"])
         config_params["endingMessage"] = os.getenv('ENDING_MESSAGE', config["DEFAULT"]["ENDING_MESSAGE"])
+        config_params["listen_backlog"] = int(
+            os.getenv('SERVER_LISTEN_BACKLOG', config["DEFAULT"]["SERVER_LISTEN_BACKLOG"]))
     except KeyError as e:
         raise KeyError("Key was not found. Error: {} .Aborting server".format(e))
     except ValueError as e:
@@ -51,6 +53,13 @@ def main():
 
     # Initialize server and start server loop
     server = Server(port, listen_backlog, endingMessage)
+
+    def killWasCalled(*args):
+        logging.info('sigterm was called. Shutting down')
+        statuses['killWasCalled'] = True
+        server.stopConnection()
+
+    signal.signal(signal.SIGTERM, killWasCalled)
     server.run(statuses)
 
 def initialize_log(logging_level):
@@ -67,11 +76,5 @@ def initialize_log(logging_level):
     )
 
 
-def killWasCalled(*args):
-    logging.info('sigterm was called. Shutting down')
-    statuses['killWasCalled'] = True
-
-
 if __name__ == "__main__":
-    signal.signal(signal.SIGTERM, killWasCalled)
     main()
