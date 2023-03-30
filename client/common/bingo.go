@@ -82,9 +82,6 @@ func getResponse(c *Client) (BingoResponse, error) {
 		log.Errorf("could not understand response from otherside, %v, message received was: %v", err, string(data))
 		return BingoResponse{}, err
 	}
-	if res.Status == "foundOgre" {
-		log.Infof("received winners, status: %v", res)
-	}
 	return res, nil
 }
 
