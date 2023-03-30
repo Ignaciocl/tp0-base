@@ -49,6 +49,13 @@ def main():
 
     # Initialize server and start server loop
     server = Server(port, listen_backlog)
+
+    def killWasCalled(*args):
+        logging.info('sigterm was called. Shutting down')
+        statuses['killWasCalled'] = True
+        server.stopConnection()
+
+    signal.signal(signal.SIGTERM, killWasCalled)
     server.run(statuses)
 
 def initialize_log(logging_level):
@@ -65,11 +72,5 @@ def initialize_log(logging_level):
     )
 
 
-def killWasCalled(*args):
-    logging.info('sigterm was called. Shutting down')
-    statuses['killWasCalled'] = True
-
-
 if __name__ == "__main__":
-    signal.signal(signal.SIGTERM, killWasCalled)
     main()
