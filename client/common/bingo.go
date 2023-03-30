@@ -2,6 +2,9 @@ package common
 
 import (
 	log "github.com/sirupsen/logrus"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 type BingoService struct {
@@ -9,13 +12,26 @@ type BingoService struct {
 }
 
 func (b BingoService) ProcessInformation(c *Client) error {
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGTERM)
+	sigtermWasCalled := false
+	go func() {
+		<- sigs // If we receive something, sigsterm was called
+		sigtermWasCalled = true
+	}()
 	if err := c.OpenConnection(); err != nil {
 		return err
 	}
 	defer c.CloseConnection()
+	if sigtermWasCalled {
+		return nil
+	}
 	info, _ := b.ClientInfo.ToByteArray()
 	if err := c.SendData(info); err != nil {
 		return err
+	}
+	if sigtermWasCalled {
+		return nil
 	}
 	data, err := c.ReceiveData()
 	if data == nil || err != nil {
