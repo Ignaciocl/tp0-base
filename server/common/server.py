@@ -40,6 +40,8 @@ class Server:
 
         while not statuses['killWasCalled']:
             client_sock = self.__accept_new_connection()
+            if statuses['killWasCalled']:
+                break
             self.__handle_client_connection(client_sock)
         logging.info('server stopped listening for connections, will shut down in short time.')
         self._statusWasKilled = True
@@ -108,3 +110,10 @@ class Server:
         c, addr = self._server_socket.accept()
         logging.info(f'action: accept_connections | result: success | ip: {addr[0]}')
         return c
+
+    def stopConnection(self):
+        """
+        stop listening for connections
+        """
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.connect(self._server_socket.getsockname())
