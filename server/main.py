@@ -67,7 +67,6 @@ def main():
     signal.signal(signal.SIGTERM, killWasCalled)
     server.run(statuses, maxConnections)
 
-
 def initialize_log(logging_level):
     """
     Python custom logging initialization

@@ -60,7 +60,7 @@ class LotteryManager:
         with self._agenciesFinished.get_lock():
             self._agenciesFinished.value += 1
 
-    def getWinners(self, lock):
+    def getWinners(self, lock, agency):
         if self._agenciesFinished.value < self._minimumAmountOfAgencies:
             raise IndexError('can`t start the lottery, still missing agencies to report its winners')
         with self._amountReading.get_lock():  # This could suffer from starvation to anyone trying to read, but is min
@@ -69,12 +69,12 @@ class LotteryManager:
             self._amountReading.value += 1
         for x in load_bets():
             if has_won(x):
-                self._winners.append(str(x.document))
+                self._winners.append(x)
         with self._amountReading.get_lock():
             self._amountReading.value -= 1
             if self._amountReading == 0:
                 lock.release()
-        return self._winners
+        return [str(x.document) for x in self._winners if str(x.agency) == agency]
 
 
 class Bingo:
@@ -112,7 +112,7 @@ class Bingo:
     def _findWinners(self, *args):
         lotteryManager = self._lm
         try:
-            info = {'winners': lotteryManager.getWinners(self._lock), 'status': 'foundOgre'}
+            info = {'winners': lotteryManager.getWinners(self._lock, self.agency), 'status': 'foundOgre'}
             return info
         except IndexError:
             return {'status': 'notAllOgre'}
