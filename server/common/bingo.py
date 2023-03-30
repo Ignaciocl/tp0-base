@@ -81,7 +81,7 @@ class Bingo:
     def _findWinners(self, *args):
         lotteryManager = LotteryManager()
         try:
-            info = {'winners': lotteryManager.getWinners(), 'status': 'foundOgre'}
+            info = {'winners': lotteryManager.getWinners(self.agency), 'status': 'foundOgre'}
             return info
         except IndexError:
             return {'status': 'notAllOgre'}
@@ -108,13 +108,13 @@ class LotteryManager:
     def agencyFinished(self, agency):
         self._agenciesFinished.add(agency)
 
-    def getWinners(self):
+    def getWinners(self, agency):
         if len(self._agenciesFinished) < self._minimumAmountOfAgencies:
             raise IndexError('can`t start the lottery, still missing agencies to report its winners')
         if not self._winners:
             # ToDo later here we will need a sync feature
             for x in load_bets():
                 if has_won(x):
-                    self._winners.append(str(x.document))
+                    self._winners.append(x)
             logging.info('action: sorteo | result: success')
-        return self._winners
+        return [str(x.document) for x in self._winners if str(x.agency) == agency]

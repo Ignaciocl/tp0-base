@@ -61,7 +61,7 @@ class Server:
                     client_sock.send("{}\n".format(msg).encode('utf-8'))
                     return
                 addr = client_sock.getpeername()
-                bingoService = Bingo(addr[1])
+                bingoService = Bingo(addr[0].split('.')[-1])
                 processedThisIter: dict = bingoService.processMessage(msg)
                 self.sendMessage(client_sock, dictToStr({"amount_processed": processedThisIter.get('amountProcessed', 0), "status": processedThisIter.get('status', "allOgre"), "winners": processedThisIter.get('winners')}))
                 processed += processedThisIter.get('amountProcessed', 0)
